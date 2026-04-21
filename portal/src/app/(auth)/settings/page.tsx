@@ -9,8 +9,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: { s
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { firstName: true, email: true, mailFrequencyDays: true },
+    select: { firstName: true, email: true, mailFrequencyDays: true, anthropicKeyEncrypted: true },
   });
+  const hasAnthropicKey = !!user?.anthropicKeyEncrypted;
 
   async function saveMailFreq(fd: FormData) {
     'use server';
@@ -35,6 +36,24 @@ export default async function SettingsPage({ searchParams }: { searchParams: { s
     ]);
     const { redirect: r } = await import('next/navigation');
     r('/login?deleted=1');
+  }
+
+  async function saveAnthropicKey(fd: FormData) {
+    'use server';
+    const s = await auth();
+    if (!s?.user?.id) return;
+    const rawKey = String(fd.get('anthropic_key') || '').trim();
+    let anthropicKeyEncrypted: string | null = null;
+    if (rawKey) {
+      const { encryptApiKey } = await import('@/lib/crypto');
+      anthropicKeyEncrypted = encryptApiKey(rawKey);
+    }
+    await (await import('@/lib/db')).prisma.user.update({
+      where: { id: s.user.id },
+      data: { anthropicKeyEncrypted },
+    });
+    const { redirect: r } = await import('next/navigation');
+    r('/settings?saved=1');
   }
 
   async function sendSupport(fd: FormData) {
@@ -77,6 +96,41 @@ export default async function SettingsPage({ searchParams }: { searchParams: { s
               className="input"
             />
             <button type="submit" className="btn-primary">Sauvegarder</button>
+          </form>
+        </section>
+
+        <section className="glass p-6 space-y-4" id="anthropic-key">
+          <h2 className="text-xl font-semibold">Clé Anthropic personnelle</h2>
+          <p className="text-sm text-muted">
+            Utilisez votre propre clé API Anthropic pour ne pas consommer le quota gratuit.
+            Elle est chiffrée (AES-256-GCM) avant stockage.
+          </p>
+          {hasAnthropicKey && (
+            <p className="text-sm text-green-400">Clé configurée — elle sera utilisée en priorité.</p>
+          )}
+          <form action={saveAnthropicKey} className="space-y-3">
+            <input
+              name="anthropic_key"
+              type="password"
+              placeholder={hasAnthropicKey ? 'Laisser vide pour conserver la clé actuelle' : 'sk-ant-…'}
+              className="input font-mono text-sm"
+              autoComplete="off"
+            />
+            <div className="flex gap-3">
+              <button type="submit" className="btn-primary">
+                {hasAnthropicKey ? 'Mettre à jour' : 'Enregistrer'}
+              </button>
+              {hasAnthropicKey && (
+                <button
+                  type="submit"
+                  name="anthropic_key"
+                  value=""
+                  className="btn-ghost border-red-500/40 text-red-400 hover:bg-red-500/10"
+                >
+                  Supprimer la clé
+                </button>
+              )}
+            </div>
           </form>
         </section>
 

@@ -10,6 +10,19 @@ export function RaeChat({ contextPage }: { contextPage?: string }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const hasLoadedHistory = useRef(false);
+
+  useEffect(() => {
+    if (open && !hasLoadedHistory.current) {
+      hasLoadedHistory.current = true;
+      fetch('/api/chat/history')
+        .then((r) => r.json())
+        .then((data: { messages?: Message[] }) => {
+          if (data.messages?.length) setMessages(data.messages);
+        })
+        .catch(() => {});
+    }
+  }, [open]);
 
   useEffect(() => {
     if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });

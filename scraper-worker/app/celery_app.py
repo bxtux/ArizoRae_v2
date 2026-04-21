@@ -22,13 +22,19 @@ celery_app.conf.update(
         "app.tasks.run_scraper_demo": {"queue": "scrapers"},
         "app.tasks.onboard_user": {"queue": "default"},
         "app.tasks.adapt_scraper": {"queue": "default"},
+        "app.tasks.archive_user_data": {"queue": "default"},
         "app.tasks.send_offers_mail": {"queue": "default"},
         "app.beat_tasks.check_mail_digests": {"queue": "default"},
+        "app.beat_tasks.backup_postgres": {"queue": "default"},
     },
     beat_schedule={
         "check-mail-digests-hourly": {
             "task": "app.beat_tasks.check_mail_digests",
             "schedule": 3600.0,
+        },
+        "backup-postgres-daily": {
+            "task": "app.beat_tasks.backup_postgres",
+            "schedule": 86400.0,  # every 24h
         },
     },
 )

@@ -25,6 +25,15 @@ class Settings(BaseSettings):
 
     # Paths
     USERS_DATAS_DIR: str = "/users_datas"
+    BACKUP_DIR: str = "/backups"
+    BACKUP_RETENTION_DAYS: int = 7
+
+    # Postgres connection for pg_dump (can differ from DATABASE_URL asyncpg URL)
+    POSTGRES_HOST: str = "postgres"
+    POSTGRES_PORT: int = 5432
+    POSTGRES_USER: str = "arizorae"
+    POSTGRES_PASSWORD: str = ""
+    POSTGRES_DB: str = "arizorae"
 
     # Sandbox limits
     SCRAPER_TIMEOUT_SECONDS: int = 300

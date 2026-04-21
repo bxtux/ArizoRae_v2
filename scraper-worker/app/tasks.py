@@ -160,6 +160,18 @@ def _build_mail_html(offers: list[dict], first_name: str) -> str:
 </body></html>"""
 
 
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=60, name="app.tasks.archive_user_data")
+def archive_user_data(self, user_id: str) -> dict:
+    uid = UUID(user_id)
+    try:
+        archived_path = fs.archive_user_dir(uid)
+        log.info("user_data_archived", user_id=user_id, path=str(archived_path))
+        return {"archived": str(archived_path)}
+    except Exception as exc:
+        log.error("archive_error", user_id=user_id, error=str(exc))
+        raise self.retry(exc=exc)
+
+
 def _send_smtp(to: str, subject: str, html: str) -> None:
     if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
         log.warning("smtp_not_configured")

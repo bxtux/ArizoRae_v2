@@ -10,6 +10,7 @@ volumes:
   postgres_data:
   redis_data:
   gotify_data:
+  backups_data:
 
 services:
 
@@ -106,6 +107,7 @@ services:
     command: ["celery", "-A", "app.celery_app", "worker", "--loglevel=info", "--concurrency=2"]
     volumes:
       - ./users_datas:/users_datas
+      - backups_data:/backups
     networks: [arizorae_net]
     depends_on:
       postgres:
@@ -122,6 +124,7 @@ services:
     command: ["celery", "-A", "app.celery_app", "beat", "--loglevel=info"]
     volumes:
       - ./users_datas:/users_datas
+      - backups_data:/backups
     networks: [arizorae_net]
     depends_on:
       postgres:
