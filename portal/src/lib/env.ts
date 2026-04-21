@@ -19,4 +19,19 @@ const schema = z.object({
   GOTIFY_ADMIN_TOKEN: z.string(),
 });
 
-export const env = schema.parse(process.env);
+type Env = z.infer<typeof schema>;
+
+let _parsed: Env | undefined;
+function parsed(): Env {
+  // NEXT_PHASE is set during `next build` — skip validation, env vars unavailable then.
+  if (process.env.NEXT_PHASE === 'phase-production-build') return {} as Env;
+  if (!_parsed) _parsed = schema.parse(process.env);
+  return _parsed;
+}
+
+export const env = new Proxy({} as Env, {
+  get(_, key: PropertyKey) {
+    if (typeof key === 'symbol') return undefined;
+    return parsed()[key as keyof Env];
+  },
+});

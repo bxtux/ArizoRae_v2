@@ -146,6 +146,7 @@ services:
     env_file: ../.env
     volumes:
       - gotify_data:/app/data
+      - ./gotify/config.yml:/app/config.yml:ro
     networks: [arizorae_net]
 
   ngrok:

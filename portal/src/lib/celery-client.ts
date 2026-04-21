@@ -2,7 +2,11 @@ import { Redis } from 'ioredis';
 import { randomUUID } from 'crypto';
 import { env } from './env';
 
-const redis = new Redis(env.CELERY_BROKER_URL);
+let _redis: Redis | undefined;
+function getRedis(): Redis {
+  if (!_redis) _redis = new Redis(env.CELERY_BROKER_URL);
+  return _redis;
+}
 
 export async function enqueueCelery(task: string, args: unknown[] = [], kwargs: Record<string, unknown> = {}) {
   const id = randomUUID();
@@ -30,6 +34,6 @@ export async function enqueueCelery(task: string, args: unknown[] = [], kwargs: 
       delivery_tag: id,
     },
   };
-  await redis.lpush('celery', JSON.stringify(envelope));
+  await getRedis().lpush('celery', JSON.stringify(envelope));
   return id;
 }

@@ -1,12 +1,18 @@
 import nodemailer from 'nodemailer';
 import { env } from './env';
 
-const transporter = nodemailer.createTransport({
-  host: env.SMTP_HOST,
-  port: env.SMTP_PORT,
-  secure: env.SMTP_PORT === 465,
-  auth: { user: env.SMTP_USER, pass: env.SMTP_PASS },
-});
+let _transporter: nodemailer.Transporter | undefined;
+function getTransporter(): nodemailer.Transporter {
+  if (!_transporter) {
+    _transporter = nodemailer.createTransport({
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT,
+      secure: env.SMTP_PORT === 465,
+      auth: { user: env.SMTP_USER, pass: env.SMTP_PASS },
+    });
+  }
+  return _transporter;
+}
 
 export async function sendMail(opts: {
   to: string;
@@ -14,7 +20,7 @@ export async function sendMail(opts: {
   html: string;
   text: string;
 }) {
-  await transporter.sendMail({
+  await getTransporter().sendMail({
     from: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM}>`,
     ...opts,
   });

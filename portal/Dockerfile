@@ -12,6 +12,7 @@ RUN npx prisma generate && npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+RUN apk add --no-cache openssl
 RUN addgroup -g 1001 nodejs && adduser -D -u 1001 -G nodejs next
 COPY --from=builder --chown=next:nodejs /app/.next ./.next
 COPY --from=builder --chown=next:nodejs /app/public ./public

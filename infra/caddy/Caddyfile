@@ -14,7 +14,8 @@
 		reverse_proxy terminal:7681
 	}
 
-	# Gotify
+	# Gotify — redirect bare /gotify to /gotify/, then strip prefix
+	redir /gotify /gotify/ 301
 	handle_path /gotify/* {
 		reverse_proxy gotify:80
 	}
@@ -27,5 +28,17 @@
 	log {
 		output stdout
 		format json
+	}
+}
+
+# Accès local à Gotify sans TLS (développement / admin)
+# handle_path strips /gotify prefix; catch-all routes SPA's absolute API calls to Gotify too
+http://localhost, http://127.0.0.1 {
+	redir /gotify /gotify/ 301
+	handle_path /gotify/* {
+		reverse_proxy gotify:80
+	}
+	handle {
+		reverse_proxy gotify:80
 	}
 }
