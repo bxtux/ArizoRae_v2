@@ -1,0 +1,51 @@
+# ============================================================
+#  Traefik — Middlewares de sécurité
+# ============================================================
+
+http:
+  middlewares:
+
+    # ── En-têtes de sécurité ──────────────────────────────
+    security-headers:
+      headers:
+        # HSTS : forcer HTTPS pendant 1 an
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        # Interdire l'affichage dans des iframes tiers
+        frameDeny: true
+        # Ne pas détecter automatiquement le MIME type
+        contentTypeNosniff: true
+        # Protection XSS basique (IE/Edge legacy)
+        browserXssFilter: true
+        # Pas de referrer vers des sites tiers
+        referrerPolicy: "strict-origin-when-cross-origin"
+        # Content Security Policy
+        contentSecurityPolicy: >-
+          default-src 'self';
+          script-src 'self' 'unsafe-inline';
+          style-src 'self' 'unsafe-inline';
+          img-src 'self' data:;
+          connect-src 'self' wss:;
+          font-src 'self';
+          object-src 'none';
+          frame-ancestors 'none';
+          base-uri 'self';
+          form-action 'self'
+        # Permissions Policy — désactiver les fonctionnalités non utilisées
+        permissionsPolicy: >-
+          camera=(),
+          microphone=(),
+          geolocation=(),
+          payment=(),
+          usb=()
+        customResponseHeaders:
+          X-Powered-By: ""
+          Server: ""
+
+    # ── Rate limiting ─────────────────────────────────────
+    rate-limit:
+      rateLimit:
+        average: 20
+        burst: 40
+        period: 1m

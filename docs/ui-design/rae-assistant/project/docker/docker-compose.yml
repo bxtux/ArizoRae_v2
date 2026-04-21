@@ -1,0 +1,203 @@
+name: arizorae
+
+# ============================================================
+#  ArizoRAE — Stack Docker
+#
+#  Profil recommandé (end user sans Claude installé) :
+#    docker compose --profile terminal up -d
+#
+#  Avec tunnel ngrok (si derrière CGNAT) :
+#    docker compose --profile terminal --profile ngrok up -d
+#
+#  Portal seul (users installent Claude en local) :
+#    docker compose up -d
+# ============================================================
+
+services:
+
+  # ── Reverse proxy + SSL auto ─────────────────────────────
+  traefik:
+    image: traefik:v3.2
+    container_name: arizorae-traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      - traefik-certs:/letsencrypt
+    environment:
+      - DUCKDNS_TOKEN=${DUCKDNS_TOKEN}
+    networks:
+      - proxy
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "traefik.enable=false"
+
+  # ── Page web — landing + téléchargement du skill ─────────
+  portal:
+    build:
+      # context = racine du repo pour accéder à rae-generic.skill
+      context: ..
+      dockerfile: docker/portal/Dockerfile
+    container_name: arizorae-portal
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run
+      - /var/cache/nginx
+      - /var/log/nginx
+    user: "101:101"
+    volumes:
+      # Volume partagé avec le terminal — sert les fichiers générés
+      # Les sessions terminal écrivent ici ; nginx les sert en lecture
+      - downloads:/usr/share/nginx/files:ro
+    networks:
+      - proxy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portal.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.portal.entrypoints=websecure"
+      - "traefik.http.routers.portal.tls.certresolver=duckdns"
+      - "traefik.http.routers.portal.priority=1"
+      - "traefik.http.routers.portal.middlewares=security-headers@file"
+      - "traefik.http.services.portal.loadbalancer.server.port=8080"
+
+  # ── Nettoyage automatique des fichiers partagés (> 2h) ───
+  # Evite que le volume downloads grossisse indéfiniment
+  cleanup:
+    image: busybox:stable
+    container_name: arizorae-cleanup
+    restart: unless-stopped
+    profiles:
+      - terminal
+    read_only: true
+    volumes:
+      - downloads:/data/downloads
+    # Supprime toutes les sessions plus vieilles de 120 minutes
+    command: >
+      sh -c "while true; do
+               find /data/downloads -mindepth 1 -maxdepth 1 -type d -mmin +120 -exec rm -rf {} + 2>/dev/null;
+               sleep 600;
+             done"
+    networks: []
+
+  # ── Terminal web — Claude Code pré-installé ──────────────
+  terminal:
+    build:
+      context: ./terminal
+      dockerfile: Dockerfile
+    container_name: arizorae-terminal
+    restart: unless-stopped
+    profiles:
+      - terminal
+    security_opt:
+      - no-new-privileges:true
+    # /tmp en tmpfs pour isolation des HOME de session
+    tmpfs:
+      - /tmp:mode=1777,size=512m
+    read_only: true
+    volumes:
+      - ../rae-generic.skill:/opt/arizorae/rae-generic.skill:ro
+      # Volume partagé : le terminal écrit, le portal sert
+      - downloads:/data/downloads
+    environment:
+      - TERMINAL_PASSWORD=${TERMINAL_PASSWORD:-}
+      - RAE_DOMAIN=${DOMAIN}
+      - TZ=${TZ:-Europe/Brussels}
+    networks:
+      - proxy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:7681/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.terminal.rule=Host(`${DOMAIN}`) && PathPrefix(`/terminal`)"
+      - "traefik.http.routers.terminal.entrypoints=websecure"
+      - "traefik.http.routers.terminal.tls.certresolver=duckdns"
+      - "traefik.http.routers.terminal.priority=10"
+      - "traefik.http.routers.terminal.middlewares=security-headers@file,terminal-strip@file,rate-limit@file"
+      - "traefik.http.services.terminal.loadbalancer.server.port=7681"
+      - "traefik.http.middlewares.terminal-strip.stripprefix.prefixes=/terminal"
+
+  # ── Mise à jour DNS DuckDNS ──────────────────────────────
+  duckdns:
+    image: lscr.io/linuxserver/duckdns:latest
+    container_name: arizorae-duckdns
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ:-Europe/Brussels}
+      - SUBDOMAINS=${DUCKDNS_SUBDOMAIN}
+      - TOKEN=${DUCKDNS_TOKEN}
+      - LOG_FILE=false
+      - UPDATE_IP=ipv4
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "https://www.duckdns.org/ping"]
+      interval: 5m
+      timeout: 10s
+      retries: 3
+
+  # ── Tunnel ngrok (si derrière CGNAT — pas d'IP publique) ─
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: arizorae-ngrok
+    restart: unless-stopped
+    profiles:
+      - ngrok
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    command: "http traefik:80 --log-level warn"
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    networks:
+      - proxy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4040/api/tunnels"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  proxy:
+    driver: bridge
+  internal:
+    driver: bridge
+    internal: true
+
+volumes:
+  traefik-certs:
+    driver: local
+  # Volume partagé terminal → portal pour les téléchargements
+  downloads:
+    driver: local

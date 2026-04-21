@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ArizoRAE — Recherche Active d'Emploi</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f172a;
+      --bg2:       #1e293b;
+      --bg3:       #334155;
+      --accent:    #e07850;
+      --accent2:   #f59e5e;
+      --text:      #e2e8f0;
+      --text2:     #94a3b8;
+      --green:     #4ade80;
+      --border:    #334155;
+      --radius:    10px;
+      --font:      system-ui, -apple-system, sans-serif;
+      --mono:      'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+
+    .logo {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+      text-decoration: none;
+    }
+
+    .logo span { color: var(--text2); font-weight: 400; }
+
+    header nav a {
+      color: var(--text2);
+      text-decoration: none;
+      font-size: 0.875rem;
+      margin-left: 1.5rem;
+      transition: color 0.2s;
+    }
+    header nav a:hover { color: var(--text); }
+
+    /* ── Hero ───────────────────────────────────────────── */
+    .hero {
+      text-align: center;
+      padding: 5rem 2rem 4rem;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .badge {
+      display: inline-block;
+      background: rgba(224, 120, 80, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(224, 120, 80, 0.3);
+      border-radius: 99px;
+      padding: 0.25rem 0.875rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      font-size: clamp(1.75rem, 5vw, 2.75rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.25rem;
+    }
+
+    h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      color: var(--text2);
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin: 0 auto 2.5rem;
+    }
+
+    /* ── Boutons ────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.7rem 1.5rem;
+      border-radius: var(--radius);
+      font-size: 0.9375rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text2);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+    .hero-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+    /* ── Cards features ──────────────────────────────────── */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      padding: 0 2rem 4rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .feature-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+    }
+
+    .feature-card .icon { font-size: 1.75rem; margin-bottom: 0.75rem; }
+    .feature-card h3 { font-size: 0.9375rem; margin-bottom: 0.4rem; }
+    .feature-card p { font-size: 0.85rem; color: var(--text2); }
+
+    /* ── Section Install ─────────────────────────────────── */
+    section.install {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 2rem 5rem;
+    }
+
+    section.install h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── Tabs ───────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: -1px;
+    }
+
+    .tab {
+      padding: 0.5rem 1.25rem;
+      border-radius: var(--radius) var(--radius) 0 0;
+      border: 1px solid transparent;
+      background: none;
+      color: var(--text2);
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-family: var(--font);
+      transition: all 0.15s;
+      border-bottom: none;
+      position: relative;
+      bottom: -1px;
+    }
+
+    .tab.active {
+      background: var(--bg2);
+      border-color: var(--border);
+      border-bottom-color: var(--bg2);
+      color: var(--text);
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Étapes ─────────────────────────────────────────── */
+    .steps { display: flex; flex-direction: column; gap: 1.25rem; }
+
+    .step {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      display: grid;
+      grid-template-columns: 2rem 1fr;
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .step-num {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      background: rgba(224, 120, 80, 0.15);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .step h3 { font-size: 0.95rem; margin-bottom: 0.5rem; }
+    .step p { font-size: 0.85rem; color: var(--text2); margin-bottom: 0.75rem; }
+
+    /* ── Blocs de code avec bouton copy ─────────────────── */
+    .code-block {
+      position: relative;
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-top: 0.5rem;
+    }
+
+    .code-block pre {
+      padding: 0.75rem 1rem;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      color: #93c5fd;
+      line-height: 1.5;
+    }
+
+    .code-block .comment { color: #4b5563; }
+
+    .copy-btn {
+      position: absolute;
+      top: 0.4rem;
+      right: 0.4rem;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.2rem 0.6rem;
+      font-size: 0.7rem;
+      color: var(--text2);
+      cursor: pointer;
+      font-family: var(--font);
+      transition: all 0.15s;
+    }
+    .copy-btn:hover { color: var(--text); border-color: var(--text2); }
+    .copy-btn.copied { color: var(--green); border-color: var(--green); }
+
+    /* ── Terminal web ────────────────────────────────────── */
+    .terminal-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .terminal-card .term-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .terminal-card h3 { margin-bottom: 0.5rem; }
+    .terminal-card p { color: var(--text2); font-size: 0.875rem; margin-bottom: 1.5rem; }
+
+    .terminal-card .notice {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      background: rgba(224, 120, 80, 0.08);
+      border: 1px solid rgba(224, 120, 80, 0.2);
+      border-radius: 6px;
+      font-size: 0.8rem;
+      color: var(--text2);
+      text-align: left;
+    }
+
+    .terminal-card .notice strong { color: var(--accent); }
+
+    /* ── Download CTA ────────────────────────────────────── */
+    .download-cta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      background: linear-gradient(135deg, rgba(224, 120, 80, 0.1), rgba(245, 158, 94, 0.05));
+      border: 1px solid rgba(224, 120, 80, 0.3);
+      border-radius: var(--radius);
+      padding: 1.5rem 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .download-cta div h3 { font-size: 1rem; margin-bottom: 0.25rem; }
+    .download-cta div p { font-size: 0.85rem; color: var(--text2); }
+
+    /* ── Footer ─────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text2);
+    }
+
+    footer a { color: var(--text2); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+
+    /* ── Responsive ─────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .hero { padding: 3rem 1.5rem 2.5rem; }
+      section.install { padding: 0 1.5rem 4rem; }
+      .features { padding: 0 1.5rem 3rem; }
+      .step { grid-template-columns: 1fr; }
+      .step-num { display: none; }
+      .download-cta { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────── -->
+<header>
+  <a href="#" class="logo">ArizoRAE <span>/ RAE</span></a>
+  <nav>
+    <a href="#install">Installer</a>
+    <a href="https://github.com/BxTux/ArizoRAE" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<!-- ── Hero ───────────────────────────────────────────────── -->
+<div class="hero">
+  <div class="badge">Skill Claude Code</div>
+  <h1>Votre assistant de<br><em>Recherche Active d'Emploi</em></h1>
+  <p>
+    CV adapté, lettres de motivation, préparation aux entretiens —
+    depuis vos faits vérifiés, sans rien inventer.
+  </p>
+  <div class="hero-actions">
+    <a href="#install" class="btn btn-primary">
+      ↓ Démarrer
+    </a>
+    <a href="/terminal" class="btn btn-ghost" target="_blank">
+      ⌨ Terminal web
+    </a>
+  </div>
+</div>
+
+<!-- ── Features ───────────────────────────────────────────── -->
+<div class="features">
+  <div class="feature-card">
+    <div class="icon">🔒</div>
+    <h3>Zéro invention</h3>
+    <p>Toutes les sorties dérivent de <code>FACTS.md</code>, votre seule source de vérité.</p>
+  </div>
+  <div class="feature-card">
+    <div class="icon">🎯</div>
+    <h3>Match offre/profil</h3>
+    <p>Score, forces, lacunes, mots-clés ATS — avant d'écrire une seule ligne.</p>
+  </div>
+  <div class="feature-card">
+    <div class="icon">🌍</div>
+    <h3>Agnostique métier</h3>
+    <p>Infirmier, DevOps, chef cuisinier — le preset est construit à la volée par recherche web.</p>
+  </div>
+  <div class="feature-card">
+    <div class="icon">📄</div>
+    <h3>CV + lettre + entretien</h3>
+    <p>Un workflow complet, de l'analyse de l'offre à la préparation de l'entretien.</p>
+  </div>
+</div>
+
+<!-- ── Section Install ─────────────────────────────────────── -->
+<section class="install" id="install">
+  <h2>Démarrage</h2>
+
+  <!-- Téléchargement du skill -->
+  <div class="download-cta">
+    <div>
+      <h3>Skill ArizoRAE</h3>
+      <p>Bundle Cowork — à installer via Claude Code CLI</p>
+    </div>
+    <a href="/downloads/rae-generic.skill" class="btn btn-primary" download>
+      ↓ Télécharger rae-generic.skill
+    </a>
+  </div>
+
+  <!-- Tabs : local vs web terminal -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('local', this)">💻 Installation locale</button>
+    <button class="tab" onclick="switchTab('web', this)">⌨ Terminal web</button>
+  </div>
+
+  <!-- Tab : installation locale -->
+  <div id="tab-local" class="tab-panel active">
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <h3>Installer Claude Code</h3>
+          <p>Claude Code est le CLI officiel Anthropic. Il nécessite Node.js 18+.</p>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copy(this)">copier</button>
+            <pre>npm install -g @anthropic-ai/claude-code</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <h3>Installer les dépendances Python</h3>
+          <p>Nécessaires pour extraire le texte des CV (PDF, DOCX, ODT).</p>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copy(this)">copier</button>
+            <pre>pip install pymupdf python-docx striprtf</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <h3>Installer le skill</h3>
+          <p>Téléchargez <code>rae-generic.skill</code> ci-dessus, puis :</p>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copy(this)">copier</button>
+            <pre><span class="comment"># Depuis le dossier où vous avez téléchargé le fichier</span>
+claude skill install ./rae-generic.skill</pre>
+          </div>
+          <p style="margin-top:0.5rem">Ou depuis le registre Cowork :</p>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copy(this)">copier</button>
+            <pre>claude skill install rae-generic</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div>
+          <h3>Initialiser votre profil</h3>
+          <p>
+            Ouvrez Claude Code dans votre répertoire de travail, puis lancez la commande d'init.
+            Prévoyez votre CV (PDF, DOCX ou TXT) et 10-15 minutes.
+          </p>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copy(this)">copier</button>
+            <pre><span class="comment"># Ouvrir Claude Code</span>
+claude
+
+<span class="comment"># Dans Claude Code, taper :</span>
+/init</pre>
+          </div>
+          <p style="margin-top:0.5rem">
+            Claude Code vous guidera : chemin du CV, métier visé, pays, questions de complétion.
+            À la fin, editez <code>FACTS.md</code> — c'est la seule étape manuelle obligatoire.
+          </p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div>
+          <h3>Utiliser le skill</h3>
+          <p>Toujours depuis Claude Code :</p>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copy(this)">copier</button>
+            <pre><span class="comment"># Analyser une offre (coller le texte ou donner un fichier)</span>
+/analyse &lt;offre&gt;
+
+<span class="comment"># Générer un CV adapté</span>
+/cv &lt;offre&gt;
+
+<span class="comment"># Rédiger la lettre de motivation</span>
+/lettre &lt;offre&gt;
+
+<span class="comment"># Préparer un entretien</span>
+/entretien &lt;offre&gt;</pre>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /steps -->
+  </div><!-- /tab-local -->
+
+  <!-- Tab : terminal web -->
+  <div id="tab-web" class="tab-panel">
+    <div class="terminal-card">
+      <div class="term-icon">⌨</div>
+      <h3>Terminal web</h3>
+      <p>
+        Claude Code est pré-installé avec le skill <strong>rae-generic</strong>.
+        Authentifiez-vous avec votre compte Claude et lancez <code>/init</code> directement dans le navigateur.
+      </p>
+      <a href="/terminal" class="btn btn-primary" target="_blank">
+        Ouvrir le terminal →
+      </a>
+      <div class="notice">
+        <strong>Compte requis :</strong> gratuit ou payant sur
+        <a href="https://claude.ai" target="_blank" rel="noopener" style="color:var(--accent)">claude.ai</a>
+        ou une clé API Anthropic (<code>ANTHROPIC_API_KEY</code>).
+        <br><br>
+        <strong>Confidentialité :</strong> votre session est isolée et effacée à la déconnexion.
+        Aucun fichier n'est conservé côté serveur.
+      </div>
+      <div class="notice" style="margin-top:0.75rem">
+        <strong>Étapes dans le terminal :</strong><br>
+        <code>1.</code> Exécuter <code>claude</code> → suivre le lien OAuth ou entrer votre API key<br>
+        <code>2.</code> Taper <code>/init</code> dans Claude Code<br>
+        <code>3.</code> Télécharger vos fichiers avec <code>download ~/workspace/FACTS.md</code>
+      </div>
+    </div>
+  </div><!-- /tab-web -->
+
+</section>
+
+<!-- ── Footer ─────────────────────────────────────────────── -->
+<footer>
+  <p>
+    <a href="https://github.com/BxTux/ArizoRAE" target="_blank" rel="noopener">ArizoRAE</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/BxTux/ArizoRAE/blob/main/docs/faq.md" target="_blank" rel="noopener">FAQ</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/BxTux/ArizoRAE/blob/main/LICENSE" target="_blank" rel="noopener">Licence</a>
+    &nbsp;·&nbsp;
+    Nécessite un compte <a href="https://claude.ai" target="_blank" rel="noopener">claude.ai</a>
+  </p>
+</footer>
+
+<script>
+  // ── Tabs ─────────────────────────────────────────────────
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // ── Copy to clipboard ────────────────────────────────────
+  function copy(btn) {
+    const pre = btn.closest('.code-block').querySelector('pre');
+    // Récupère le texte sans les commentaires de couleur
+    const text = pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = '✓ copié';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'copier';
+        btn.classList.remove('copied');
+      }, 2000);
+    }).catch(() => {
+      // Fallback pour navigateurs sans clipboard API
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      btn.textContent = '✓ copié';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'copier';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+</script>
+
+</body>
+</html>
