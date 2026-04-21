@@ -89,6 +89,7 @@ services:
     volumes:
       - ./users_datas:/users_datas
       - ../skills/rae-generic:/skills/rae-generic:ro
+      - ../scraper-worker/templates:/templates:ro
     networks: [arizorae_net]
     depends_on:
       postgres:

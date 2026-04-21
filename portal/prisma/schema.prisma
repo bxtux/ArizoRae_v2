@@ -68,6 +68,7 @@ enum OfferStatus {
   new
   applied
   rejected
+  not_interested
 }
 
 model JobOffer {

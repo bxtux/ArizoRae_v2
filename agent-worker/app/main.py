@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
 from .auth import require_agent_secret
-from .workflows import analyse, chat, cv, entretien, init as init_wf, lettre, scraper_adapt, scraper_gen
+from .workflows import analyse, chat, cv, entretien, init as init_wf, lettre, recherche, scraper_adapt, scraper_gen
 
 log = structlog.get_logger()
 app = FastAPI(title="ArizoRAE agent-worker", version="0.1.0")
@@ -33,6 +33,16 @@ async def post_init(body: InitBody):
         async for evt in init_wf.run_stream(body.user_id, body.cv_path, body.metier, body.country):
             yield {"event": evt.get("type", "message"), "data": json.dumps(evt)}
     return EventSourceResponse(gen())
+
+
+class RechercheBody(BaseModel):
+    user_id: UUID
+    jobboards_override: list[str] | None = None
+
+
+@app.post("/workflows/recherche", dependencies=[Depends(require_agent_secret)])
+async def post_recherche(body: RechercheBody):
+    return await recherche.run(body.user_id, body.jobboards_override)
 
 
 class OfferBody(BaseModel):
