@@ -1,0 +1,35 @@
+.env
+**/.env
+
+# Données personnelles — jamais versionnées
+FACTS.md
+BULLET_LIBRARY.md
+preset.md
+cv_raw.txt
+
+# Répertoires de profils utilisateurs
+users_datas/
+
+# Documents produits (CV adaptés, lettres, etc.)
+output/
+*.docx
+*.pdf
+*.odt
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# Editeurs et OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+*.orig
