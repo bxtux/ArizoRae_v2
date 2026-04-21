@@ -1,0 +1,31 @@
+{
+	email {$ACME_EMAIL}
+	acme_dns duckdns {$DUCKDNS_TOKEN}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Terminal ttyd (basic auth)
+	handle_path /terminal/* {
+		basic_auth {
+			admin {$TERMINAL_PASSWORD_HASH}
+		}
+		reverse_proxy terminal:7681
+	}
+
+	# Gotify
+	handle_path /gotify/* {
+		reverse_proxy gotify:80
+	}
+
+	# Portal (catchall)
+	handle {
+		reverse_proxy portal:3000
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

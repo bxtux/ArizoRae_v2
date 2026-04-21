@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                      String    @id @default(uuid()) @db.Uuid
+  email                   String    @unique
+  firstName               String    @map("first_name")
+  passwordHash            String?   @map("password_hash")
+  emailVerifiedAt         DateTime? @map("email_verified_at")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  deletedAt               DateTime? @map("deleted_at")
+  anthropicKeyEncrypted   String?   @map("anthropic_key_encrypted")
+  quotaUsedTokens         BigInt    @default(0) @map("quota_used_tokens")
+  quotaLimitTokens        BigInt    @default(500000) @map("quota_limit_tokens")
+  mailFrequencyDays       Int?      @map("mail_frequency_days")
+  lastMailAt              DateTime? @map("last_mail_at")
+
+  sessions                Session[]
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
+  jobOffers               JobOffer[]
+  applications            Application[]
+  chatMessages            ChatMessage[]
+  aiJobs                  AiJob[]
+  supportTickets          SupportTicket[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model EmailVerificationToken {
+  token     String   @id
+  userId    String   @map("user_id") @db.Uuid
+  expiresAt DateTime @map("expires_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("email_verification_tokens")
+}
+
+model PasswordResetToken {
+  token     String   @id
+  userId    String   @map("user_id") @db.Uuid
+  expiresAt DateTime @map("expires_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+enum OfferStatus {
+  new
+  applied
+  rejected
+}
+
+model JobOffer {
+  id                String      @id @default(uuid()) @db.Uuid
+  userId            String      @map("user_id") @db.Uuid
+  externalId        String      @map("external_id")
+  source            String
+  title             String
+  company           String?
+  location          String?
+  url               String
+  scrapedAt         DateTime    @default(now()) @map("scraped_at")
+  score             Float?
+  scoreReasons      Json?       @map("score_reasons")
+  rawJson           Json?       @map("raw")
+  status            OfferStatus @default(new)
+  notInterestedReason String?   @map("not_interested_reason")
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applications Application[]
+
+  @@unique([userId, externalId, source])
+  @@index([userId, status])
+  @@map("job_offers")
+}
+
+model Application {
+  id        String   @id @default(uuid()) @db.Uuid
+  offerId   String   @map("offer_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  cvPath    String?  @map("cv_path")
+  letterPath String? @map("letter_path")
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  offer JobOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  user  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("applications")
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  role      String
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("chat_messages")
+}
+
+enum AiJobStatus {
+  running
+  done
+  error
+}
+
+model AiJob {
+  id                String      @id @default(uuid()) @db.Uuid
+  userId            String      @map("user_id") @db.Uuid
+  workflow          String
+  model             String
+  status            AiJobStatus @default(running)
+  inputJson         Json?       @map("input")
+  outputJson        Json?       @map("output")
+  tokensIn          Int         @default(0) @map("tokens_in")
+  tokensOut         Int         @default(0) @map("tokens_out")
+  tokensInCached    Int         @default(0) @map("tokens_in_cached")
+  tokensInUncached  Int         @default(0) @map("tokens_in_uncached")
+  startedAt         DateTime    @default(now()) @map("started_at")
+  finishedAt        DateTime?   @map("finished_at")
+  error             String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt])
+  @@map("ai_jobs")
+}
+
+model SupportTicket {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  subject   String
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("support_tickets")
+}

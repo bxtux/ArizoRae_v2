@@ -1,0 +1,158 @@
+name: arizorae
+
+networks:
+  arizorae_net:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
+  postgres_data:
+  redis_data:
+  gotify_data:
+
+services:
+
+  caddy:
+    build:
+      context: ./caddy
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    env_file: ../.env
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [arizorae_net]
+    depends_on:
+      - portal
+      - terminal
+      - gotify
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks: [arizorae_net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    networks: [arizorae_net]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  portal:
+    build:
+      context: ../portal
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      NODE_ENV: production
+    volumes:
+      - ./users_datas:/users_datas
+    networks: [arizorae_net]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  agent:
+    build:
+      context: ../agent-worker
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ../.env
+    volumes:
+      - ./users_datas:/users_datas
+      - ../skills/rae-generic:/skills/rae-generic:ro
+    networks: [arizorae_net]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  scraper:
+    build:
+      context: ../scraper-worker
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ../.env
+    command: ["celery", "-A", "app.celery_app", "worker", "--loglevel=info", "--concurrency=2"]
+    volumes:
+      - ./users_datas:/users_datas
+    networks: [arizorae_net]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  beat:
+    build:
+      context: ../scraper-worker
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ../.env
+    command: ["celery", "-A", "app.celery_app", "beat", "--loglevel=info"]
+    volumes:
+      - ./users_datas:/users_datas
+    networks: [arizorae_net]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  terminal:
+    build:
+      context: ./terminal
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ../.env
+    volumes:
+      - ./users_datas:/users_datas
+      - ../skills:/skills:ro
+    networks: [arizorae_net]
+
+  gotify:
+    image: gotify/server:latest
+    restart: unless-stopped
+    env_file: ../.env
+    volumes:
+      - gotify_data:/app/data
+    networks: [arizorae_net]
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    restart: unless-stopped
+    profiles: ["ngrok"]
+    command: ["http", "caddy:443"]
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+    networks: [arizorae_net]
+    depends_on: [caddy]
