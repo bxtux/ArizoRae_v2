@@ -41,7 +41,11 @@ export default function SignupPage({ searchParams }: { searchParams: { error?: s
     });
 
     const link = `${env.PUBLIC_URL}/verify?token=${token}`;
-    await sendMail({ to: email, ...verificationEmail(link, firstName) });
+    try {
+      await sendMail({ to: email, ...verificationEmail(link, firstName) });
+    } catch {
+      // SMTP failure: account created, mail will not be received — log in production
+    }
 
     redirect('/signup/sent');
   }

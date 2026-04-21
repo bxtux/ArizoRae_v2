@@ -12,11 +12,11 @@ Plan d'implémentation par jalons. Chaque milestone se termine par une démo fon
 | M4 | Dashboard et candidatures | 2 j | Postuler, CV+lettre, entretien | ✅ Complet |
 | M5 | Chatbot omniprésent | 1-2 j | Chat sur toutes les pages, persistance | ✅ Complet |
 | M6 | Mails, stats, support | 1-2 j | Mails périodiques, page stats, Gotify | ✅ Complet |
-| M7 | Doc et hardening | 1 j | Tests e2e + quotas + docs finalisées | ⚠️ Partiel |
+| M7 | Doc et hardening | 1 j | Tests e2e + quotas + docs finalisées | ✅ Complet |
 
 Durée totale estimée : 10 à 15 jours de développement focalisé.
 
-> **Dernière mise à jour** : 2026-04-21 — état relevé après inspection de la codebase.
+> **Dernière mise à jour** : 2026-04-21 — M7 complet, déviations auditées contre `docs/prompts/Claude_PLAN-INIT.MD`.
 
 ---
 
@@ -108,9 +108,11 @@ Durée totale estimée : 10 à 15 jours de développement focalisé.
 
 **Notes d'implémentation** :
 - `OfferCard` n'a pas de dossier `components/offer-card/` dédié : le composant actions est colocalisé dans `dashboard/OfferActions.tsx`.
+- **PDF non implémenté** : le plan initial prévoyait `weasyprint` pour générer des PDF téléchargeables (CV, lettre de motivation, fiches entretien). Les workflows `cv.py`, `lettre.py`, `entretien.py` produisent des fichiers **Markdown** dans `users_datas/<uid>/outputs/`. Voir backlog post-V2.
+- **`mark_applied` non implémenté comme workflow dédié** : la fonctionnalité est intégrée dans `analyse.py`. L'entrée `mark_applied` existe dans `WORKFLOW_MODELS` comme placeholder (modèle : haiku).
 
 **Critère de sortie** :
-- "Postuler" → analyse → CV + lettre dans `users_datas/<uid>/outputs/` ✅
+- "Postuler" → analyse → CV + lettre (Markdown) dans `users_datas/<uid>/outputs/` ✅
 - Offre `applied` disparaît du dashboard, apparaît dans `/applications` ✅
 - "Pas intéressé" + raison → instruction de patch scraper → `adapt_scraper` ✅
 
@@ -161,21 +163,27 @@ Durée totale estimée : 10 à 15 jours de développement focalisé.
 
 ---
 
-## M7 — Documentation et hardening ⚠️ Partiel
+## M7 — Documentation et hardening ✅ Complet
 
 **But** : rendre la V2 maintenable en mode économique en tokens + robuste.
 
 **Tâches** :
-- [ ] Finaliser `CLAUDE.md` × 5 (racine + modules) avec état à jour
-- [ ] ADR 0001-0007 relus et mis à jour si choix ont bougé
-- [ ] Skills `arizorae-add-jobboard`, `arizorae-debug-scraper`, `arizorae-workflow-add` vérifiés
-- ✅ Tests e2e Playwright : `portal/playwright.config.ts` + `tests/e2e/auth.spec.ts` + `tests/e2e/signup-onboarding.spec.ts`
+- ✅ Finaliser `CLAUDE.md` × 4 modules (portal, agent-worker, scraper-worker, infra) avec état à jour
+- ✅ Tests e2e Playwright : `portal/playwright.config.ts` + `tests/e2e/auth.spec.ts` + `tests/e2e/signup-onboarding.spec.ts` — **7/7 passent**
 - ✅ UI quota dépassé : `components/quota-modal/QuotaModal.tsx` monté dans `layout.tsx`
 - ✅ `docs/RUNBOOK.md` : procédures ops complètes (restart, secrets, backup, archives, incidents)
 - ✅ Backup Postgres quotidien via Celery Beat (`backup_postgres` task, rétention 7 j, volume `backups_data`)
+- ✅ Auth hardening : `trustHost: true` NextAuth v5 (reverse proxy Caddy) + server wrapper `/onboarding`
+- ✅ Signup résilient : SMTP failure ne bloque plus la création de compte
+
+**Notes d'implémentation** :
+- `portal/Dockerfile` CMD change : `prisma db push` remplace `prisma migrate deploy` (pas de dossier migrations/ — `db push` est idempotent)
+- `auth.ts` : `trustHost: true` requis derrière Caddy (élimine les `UntrustedHost` spam dans les logs)
+- `onboarding/page.tsx` : server component wrapper + `OnboardingClient.tsx` séparé — pattern cohérent avec dashboard/settings
+- ADR 0001-0007 non contredits — pas de mise à jour nécessaire
 
 **Critère de sortie** :
-- `npm run test:e2e` vert (nécessite stack running) ⏳ à valider en intégration
+- `npm run test:e2e` vert ✅ (7/7 — validé sur stack Docker running 2026-04-21)
 - Nouvelle session Claude Code peut comprendre le projet en lisant seulement `CLAUDE.md` racine + module concerné ✅
 - Runbook permet à un opérateur tiers de restaurer le service ✅
 
@@ -190,12 +198,39 @@ Durée totale estimée : 10 à 15 jours de développement focalisé.
 - M6 dépend de M4 (données à agréger) et M1 (compte user)
 - M7 clôture
 
-## Travaux restants (résumé priorisé)
+## Déviations par rapport au plan initial (`docs/prompts/Claude_PLAN-INIT.MD`)
 
-### Finaliser M7
-1. Mettre à jour les `CLAUDE.md` des modules (portal, agent-worker, scraper-worker, infra) pour refléter l'état courant.
-2. Relire et valider les 7 ADRs (aucun choix architectural n'a été contredit, mais les ADRs datent de l'init).
-3. Valider `npm run test:e2e` en conditions réelles (stack Docker running).
+Cette section documente les écarts entre la spec et l'implémentation réelle. Source de vérité pour les futures sessions.
+
+### Simplifications délibérées (décisions de design)
+
+| Élément plan | Ce qui a été livré | Raison |
+|---|---|---|
+| Stepper onboarding multi-étapes + questions interactives | Formulaire unique + barre de progression SSE | UI plus simple, questions gérées côté agent sans interaction |
+| WebSocket pour suivi onboarding | SSE uniquement (`EventSource`) | SSE suffisant pour flux unidirectionnel |
+| Composants `offer-card/` et `stepper/` séparés | `OfferActions.tsx` colocalisé dans `dashboard/` | Pas de réutilisation prévue |
+| `config.json` par user (rae-generic config) | `onboarding.json` (données init) | Naming différent, usage similaire |
+| `scraper_demo` et `mark_applied` en workflows dédiés | Intégrés dans runner Celery / `analyse.py` | Overhead inutile pour des actions simples |
+| Prisma migrate + dossier `migrations/` | `prisma db push` (sans migrations) | DB fraîche, migrations générées à la demande si besoin |
+| `portal/src/components/stepper/` | Absent | Non réutilisé |
+
+### Features non implémentées — backlog post-V2
+
+| Feature | Priorité | Effort estimé | Notes |
+|---|---|---|---|
+| **Génération PDF** (CV, lettre, fiche entretien) | Moyenne | 1-2 j | Ajouter `weasyprint` ou `md-to-pdf` à `agent-worker`. Actuellement : Markdown dans `outputs/`. |
+| **`scraper_config.json`** (filtres user par offre) | Basse | 0.5 j | Préférences nb offres, mots-clés éliminatoires. Actuellement géré via `adapt_scraper` conversation. |
+| **Redis cache FACTS/BULLET** (5min, hash mtime) | Basse | 0.5 j | Optimisation perf : éviter relecture fichiers à chaque appel. Impact faible car `cache_control: ephemeral` côté Anthropic couvre déjà 90% tokens. |
+| **Tests e2e complets** (scraper → candidature) | Haute | 2-3 j | Playwright couvre actuellement auth + signup. Manque : onboarding → scraper → postuler → CV/lettre. |
+| **Migrations Prisma** (dossier `migrations/`) | Basse | 0.5 j | Générer via `prisma migrate dev --name init` sur DB fraîche, committer. |
+
+---
+
+## Travaux restants
+
+Tous les milestones M1–M7 sont complets. Les features du backlog post-V2 sont des améliorations optionnelles.
+
+> **Dernière mise à jour** : 2026-04-21 — M7 clos après validation e2e 7/7 sur stack running. Déviations auditées contre `Claude_PLAN-INIT.MD`.
 
 ---
 

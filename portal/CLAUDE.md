@@ -9,7 +9,7 @@ portal/src/
 ├── app/
 │   ├── (public)/              # login, signup, signup/sent, reset, reset/confirm, verify
 │   ├── (auth)/                # routes protégées (middleware)
-│   │   ├── onboarding/        # upload CV + streaming SSE init + aperçu démo
+│   │   ├── onboarding/        # server wrapper auth + OnboardingClient.tsx ('use client')
 │   │   ├── dashboard/         # liste offres new, OfferActions (Postuler/Rejeter/Entretien)
 │   │   ├── applications/      # offres applied + liens CV/lettre
 │   │   ├── settings/          # fréquence mail, clé Anthropic, support, suppression compte
@@ -50,10 +50,10 @@ portal/src/
 
 ## Conventions
 
-- **Server components par défaut**. `"use client"` uniquement pour interactivité réelle : form stateful, hooks, event listeners.
+- **Server components par défaut**. `"use client"` uniquement pour interactivité réelle : form stateful, hooks, event listeners. Les pages `'use client'` doivent avoir un server component wrapper qui appelle `auth()` + `redirect('/login')` — voir `onboarding/page.tsx`.
 - **Server actions** pour mutations simples (form submit). API routes pour : streaming SSE, webhooks, ou appels devant rester côté serveur mais appelés depuis le client (chat, scraper run).
 - **Prisma** : toujours via `lib/db.ts` (singleton), ne pas instancier ailleurs.
-- **Auth** : `auth()` de NextAuth v5 dans server components ; `useSession()` côté client si strict besoin.
+- **Auth** : `auth()` de NextAuth v5 dans server components ; `useSession()` côté client si strict besoin. `trustHost: true` configuré dans `lib/auth.ts` (requis derrière Caddy).
 - **Design tokens** : variables CSS de `globals.css` (`--primary`, `--bg`, `--gold`, etc.), pas de couleurs hardcodées.
 
 ## Intégration agent-worker

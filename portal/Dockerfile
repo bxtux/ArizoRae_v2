@@ -21,4 +21,4 @@ COPY --from=builder --chown=next:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=next:nodejs /app/prisma ./prisma
 USER next
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
+CMD ["sh", "-c", "npx prisma db push && npm start"]

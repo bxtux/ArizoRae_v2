@@ -129,6 +129,11 @@ docker compose logs --tail=50 beat | grep backup
 ls -lh infra/backups/
 ```
 
+> **⚠️ Limitation** : seule la base Postgres est sauvegardée automatiquement. Le dossier `infra/users_datas/` (CV, FACTS, scraper.py, outputs) n'est **pas** inclus dans les backups automatiques. Pour un backup complet, effectuer manuellement :
+> ```bash
+> tar -czf users_datas_$(date +%Y%m%dT%H%M%S).tar.gz infra/users_datas/ --exclude='infra/users_datas/.trash'
+> ```
+
 ---
 
 ## 5. Archives utilisateurs

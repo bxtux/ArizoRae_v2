@@ -15,10 +15,11 @@ Hybride :
   - Tables `users`, `sessions`, `tokens`, `job_offers`, `applications`, `ai_jobs`, `chat_messages`, `support_tickets`.
   - Stats, filtres, queries multi-users passent par SQL.
 
-- **Fichiers MD** (source de vérité pour le contenu narratif) :
+- **Fichiers** (source de vérité pour le contenu narratif) :
   - `infra/users_datas/<user_id>/` volume Docker partagé.
-  - `FACTS.md`, `BULLET_LIBRARY.md`, `preset.md`, `cv_raw.txt`, `cv_original.pdf`, `scraper.py`, `scraper_config.json`, `chat_log.md`, `outputs/*.pdf`.
+  - `cv_original.pdf` (upload portal), `cv_raw.txt` (extrait par init workflow), `onboarding.json` (config init : métier/pays), `FACTS.md`, `BULLET_LIBRARY.md`, `preset.md`, `scraper.py`, `scraper.log`, `chat_log.md`, `outputs/` (CV/lettre/entretien en Markdown).
   - Lus directement par agent-worker (pour contexte IA) et scraper-worker (pour exécution).
+  - **Non implémenté** : `scraper_config.json` (filtres éliminatoires user — voir backlog ROADMAP.md). Les outputs sont des fichiers Markdown, pas des PDF (weasyprint non intégré — voir backlog ROADMAP.md).
 
 - **Miroir DB pour chat_messages** : persistance DB pour UI rapide (pagination), fichier `chat_log.md` pour contexte IA efficace (append-only, cacheable).
 
@@ -27,7 +28,7 @@ Hybride :
 - `user_id` = UUID Postgres (`users.id`), jamais l'email ni le prénom.
 - Les fichiers MD sont écrits atomiquement (`write_tmp + rename`).
 - Suppression compte : soft-delete DB (`deleted_at`), move `users_datas/<uid>/` vers `users_datas/.trash/<uid>_<timestamp>/`, rétention 30 jours puis purge.
-- Backup : dump Postgres quotidien + tar.gz de `users_datas/` (hors `.trash/`).
+- Backup : dump Postgres quotidien via Celery Beat (`beat_tasks.backup_postgres`). Le tarball de `users_datas/` n'est pas automatisé — seule l'archive soft-delete (`.trash/`) est gérée.
 
 ## Alternatives considérées
 
