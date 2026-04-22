@@ -1,9 +1,10 @@
 {
 	email {$ACME_EMAIL}
 	acme_dns duckdns {$DUCKDNS_TOKEN}
+	auto_https disable_redirects
 }
 
-{$DOMAIN} {
+(app_routes) {
 	encode zstd gzip
 
 	# Terminal ttyd (basic auth)
@@ -29,6 +30,16 @@
 		output stdout
 		format json
 	}
+}
+
+# Domaine public: HTTPS (certificat ACME)
+https://{$DOMAIN} {
+	import app_routes
+}
+
+# Domaine local via /etc/hosts: HTTP sans redirection TLS forcée
+http://{$DOMAIN} {
+	import app_routes
 }
 
 # Accès local à Gotify sans TLS (développement / admin)

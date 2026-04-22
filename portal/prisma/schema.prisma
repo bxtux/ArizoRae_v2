@@ -17,6 +17,8 @@ model User {
   createdAt               DateTime  @default(now()) @map("created_at")
   deletedAt               DateTime? @map("deleted_at")
   anthropicKeyEncrypted   String?   @map("anthropic_key_encrypted")
+  openaiKeyEncrypted      String?   @map("openai_key_encrypted")
+  aiProvider              String    @default("claude") @map("ai_provider")
   quotaUsedTokens         BigInt    @default(0) @map("quota_used_tokens")
   quotaLimitTokens        BigInt    @default(500000) @map("quota_limit_tokens")
   mailFrequencyDays       Int?      @map("mail_frequency_days")

@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import Link from 'next/link';
 import { OfferActions } from './OfferActions';
+import { RunScraperButton } from './RunScraperButton';
+import { LogoutButton } from '@/components/LogoutButton';
 
 export default async function Dashboard() {
   const session = await auth();
@@ -29,6 +31,7 @@ export default async function Dashboard() {
             <Link href="/applications" className="btn-ghost text-sm">Candidatures</Link>
             <Link href="/stats" className="btn-ghost text-sm">Stats</Link>
             <Link href="/settings" className="btn-ghost text-sm">Paramètres</Link>
+            <LogoutButton />
           </div>
         </div>
 
@@ -40,11 +43,7 @@ export default async function Dashboard() {
 
         <div className="flex items-center gap-4">
           <h2 className="text-xl font-semibold">Offres disponibles ({offers.length})</h2>
-          <form action="/api/scraper/run" method="POST">
-            <button type="submit" className="btn-primary text-sm px-5 py-2">
-              Lancer le scraper
-            </button>
-          </form>
+          <RunScraperButton />
         </div>
 
         {offers.length === 0 && (

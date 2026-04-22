@@ -12,7 +12,7 @@ const credsSchema = z.object({
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  session: { strategy: 'database', maxAge: 30 * 24 * 60 * 60 },
+  session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 },
   pages: { signIn: '/login' },
   trustHost: true,
   providers: [
@@ -31,8 +31,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    session: ({ session, user }) => {
-      if (session.user) session.user.id = user.id;
+    jwt: ({ token, user }) => {
+      if (user) token.sub = user.id;
+      return token;
+    },
+    session: ({ session, token }) => {
+      if (session.user && token.sub) session.user.id = token.sub;
       return session;
     },
   },

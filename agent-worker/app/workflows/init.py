@@ -26,14 +26,14 @@ async def run_stream(
     cv_text = await _extract_cv_text(Path(cv_path))
     fs.write_text(fs.user_dir(user_id) / "cv_raw.txt", cv_text)
 
-    model = sdk_client.model_for("init")
+    user = await db.get_user(user_id)
+    provider = (user.get("ai_provider") or "claude") if user else "claude"
+    model = sdk_client.model_for("init", provider=provider)
     input_payload = {"metier": metier, "country": country, "cv_len": len(cv_text)}
     job_id = await db.start_ai_job(user_id, workflow="init", model=model, input_payload=input_payload)
     yield {"type": "progress", "step": "starting_model", "percent": 10, "model": model}
 
     try:
-        api_key, which = await quota.pick_api_key(user_id)
-        system = sdk_client.build_cached_system(user_id)
         prompt = (
             f"Tu démarres l'onboarding d'un candidat. Métier visé : {metier}. Pays : {country}.\n\n"
             "À partir du CV brut ci-dessous, produis trois artefacts Markdown séparés "
@@ -45,13 +45,21 @@ async def run_stream(
         )
         usage = None
         collected = ""
-        async for evt in sdk_client.stream(
-            api_key=api_key,
-            model=model,
-            system=system,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=8192,
-        ):
+        if provider == "openai":
+            api_key, which = await quota.pick_openai_key(user_id)
+            system_text = sdk_client.build_system_text(user_id)
+            stream_gen = sdk_client.stream_openai(
+                api_key=api_key, model=model, system_text=system_text,
+                messages=[{"role": "user", "content": prompt}], max_tokens=8192,
+            )
+        else:
+            api_key, which = await quota.pick_api_key(user_id)
+            system = sdk_client.build_cached_system(user_id)
+            stream_gen = sdk_client.stream(
+                api_key=api_key, model=model, system=system,
+                messages=[{"role": "user", "content": prompt}], max_tokens=8192,
+            )
+        async for evt in stream_gen:
             if evt["type"] == "delta":
                 collected += evt["text"]
                 yield {"type": "delta", "text": evt["text"]}

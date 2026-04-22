@@ -24,14 +24,28 @@ export async function POST(req: NextRequest) {
     data: { userId, role: 'user', content: message },
   });
 
-  // Call agent-worker (haiku by default)
-  const result = await agentPost<{ reply: string }>('/chat', {
-    user_id: userId,
-    message,
-    context_page: contextPage ?? '',
-  });
+  let result: { reply: string };
+  try {
+    result = await agentPost<{ reply: string }>('/chat', {
+      user_id: userId,
+      message,
+      context_page: contextPage ?? '',
+    }) as { reply: string };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '';
+    if (msg.includes('402') || msg.includes('quota') || msg.includes('credit') || msg.includes('429')) {
+      return NextResponse.json(
+        { error: 'quota', reply: 'Crédits IA insuffisants. Vérifiez votre clé API et les crédits disponibles dans vos paramètres.' },
+        { status: 402 }
+      );
+    }
+    return NextResponse.json(
+      { error: 'agent_error', reply: "L'agent est temporairement indisponible. Réessayez dans quelques instants." },
+      { status: 503 }
+    );
+  }
 
-  const reply = (result as { reply: string }).reply;
+  const reply = result.reply;
 
   await prisma.chatMessage.create({
     data: { userId, role: 'assistant', content: reply },

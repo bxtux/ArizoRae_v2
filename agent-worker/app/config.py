@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY_ADMIN: str
     DEFAULT_USER_QUOTA_TOKENS: int = 500_000
 
+    # OpenAI (optionnel — laissé vide si non utilisé)
+    OPENAI_API_KEY_ADMIN: str = ""
+
     # DB
     DATABASE_URL: str
 

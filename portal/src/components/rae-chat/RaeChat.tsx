@@ -40,8 +40,9 @@ export function RaeChat({ contextPage }: { contextPage?: string }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text, contextPage }),
       });
-      const data = (await res.json()) as { reply: string };
-      setMessages((m) => [...m, { role: 'assistant', content: data.reply }]);
+      const data = (await res.json()) as { reply?: string; error?: string };
+      const content = data.reply ?? "Erreur de connexion. Réessayez.";
+      setMessages((m) => [...m, { role: 'assistant', content }]);
     } catch {
       setMessages((m) => [...m, { role: 'assistant', content: 'Erreur de connexion. Réessayez.' }]);
     } finally {

@@ -21,7 +21,11 @@ _engine: AsyncEngine = create_async_engine(_pg_url(settings.DATABASE_URL), pool_
 async def get_user(user_id: UUID) -> dict[str, Any] | None:
     async with _engine.begin() as conn:
         res = await conn.execute(
-            text("SELECT id, email, first_name, anthropic_key_encrypted, quota_used_tokens, quota_limit_tokens FROM users WHERE id = :uid"),
+            text(
+                "SELECT id, email, first_name, anthropic_key_encrypted, openai_key_encrypted, "
+                "ai_provider, quota_used_tokens, quota_limit_tokens "
+                "FROM users WHERE id = :uid"
+            ),
             {"uid": str(user_id)},
         )
         row = res.mappings().first()
