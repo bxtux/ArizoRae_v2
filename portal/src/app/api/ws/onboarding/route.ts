@@ -45,7 +45,13 @@ export async function GET(_req: NextRequest) {
   });
 
   if (!upstream.ok || !upstream.body) {
-    const err = JSON.stringify({ type: 'error', message: `agent-worker: ${upstream.status}` });
+    const err = JSON.stringify({
+      type: 'error',
+      message: upstream.status === 402
+        ? 'Le mode standard est indisponible. Activez le mode economique pour continuer.'
+        : `agent-worker: ${upstream.status}`,
+      fallback_mode: upstream.status === 402 ? 'economic' : undefined,
+    });
     return new Response(`data: ${err}\n\n`, {
       status: 200,
       headers: { 'Content-Type': 'text/event-stream' },

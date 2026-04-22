@@ -35,6 +35,34 @@ async def post_init(body: InitBody):
     return EventSourceResponse(gen())
 
 
+class EconomicInitBody(BaseModel):
+    user_id: UUID
+    run_id: str
+    cv_path: str
+    metier: str
+    country: str
+    output_dir: str
+    confirm_replace: bool = False
+
+
+@app.post("/workflows/economic/init", dependencies=[Depends(require_agent_secret)])
+async def post_economic_init(body: EconomicInitBody):
+    async def gen():
+        async for evt in init_wf.run_stream(
+            body.user_id,
+            body.cv_path,
+            body.metier,
+            body.country,
+            output_dir=body.output_dir,
+            provider_override="openai",
+            validate_required=True,
+            promote_on_success=True,
+            allow_replace=body.confirm_replace,
+        ):
+            yield {"event": evt.get("type", "message"), "data": json.dumps(evt)}
+    return EventSourceResponse(gen())
+
+
 class RechercheBody(BaseModel):
     user_id: UUID
     jobboards_override: list[str] | None = None

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-export function QuotaModal({ exceeded }: { exceeded: boolean }) {
+export function QuotaModal({ exceeded, economicConnected }: { exceeded: boolean; economicConnected: boolean }) {
   const [dismissed, setDismissed] = useState(false);
 
   if (!exceeded || dismissed) return null;
@@ -22,25 +22,23 @@ export function QuotaModal({ exceeded }: { exceeded: boolean }) {
           </button>
         </div>
         <p className="text-sm text-muted">
-          Vous avez utilisé la totalité du quota gratuit ArizoRAE. Pour continuer à utiliser
-          l&apos;assistant, ajoutez votre propre clé API Anthropic.
-        </p>
-        <p className="text-xs text-muted">
-          Obtenez une clé sur{' '}
-          <span className="text-primary font-mono">console.anthropic.com</span> — les appels seront
-          facturés sur votre compte Anthropic directement.
+          Le mode standard n&apos;est plus disponible pour le moment. Vous pouvez continuer immédiatement avec le mode économique.
         </p>
         <div className="flex gap-3">
           <Link
-            href="/settings#anthropic-key"
+            href="/onboarding?mode=economic"
             className="btn-primary flex-1 justify-center text-center"
             onClick={() => setDismissed(true)}
           >
-            Configurer ma clé
+            {economicConnected ? 'Continuer en mode économique' : 'Activer le mode économique'}
           </Link>
-          <button onClick={() => setDismissed(true)} className="btn-ghost text-sm px-4">
-            Plus tard
-          </button>
+          <Link
+            href="/settings#anthropic-key"
+            className="btn-ghost text-sm px-4 inline-flex items-center justify-center"
+            onClick={() => setDismissed(true)}
+          >
+            Options avancées
+          </Link>
         </div>
       </div>
     </div>

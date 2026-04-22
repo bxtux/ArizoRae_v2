@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import Link from 'next/link';
+import type { Prisma } from '@prisma/client';
 
 export default async function ApplicationsPage() {
   const session = await auth();
@@ -12,6 +13,7 @@ export default async function ApplicationsPage() {
     include: { offer: true },
     orderBy: { createdAt: 'desc' },
   });
+  type ApplicationWithOffer = Prisma.ApplicationGetPayload<{ include: { offer: true } }>;
 
   return (
     <main className="min-h-screen p-8">
@@ -28,7 +30,7 @@ export default async function ApplicationsPage() {
         )}
 
         <ul className="space-y-4">
-          {applications.map((app) => (
+          {applications.map((app: ApplicationWithOffer) => (
             <li key={app.id} className="glass p-5 flex justify-between items-start gap-4">
               <div className="flex-1 min-w-0">
                 <p className="font-semibold truncate">{app.offer.title}</p>

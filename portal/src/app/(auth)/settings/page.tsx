@@ -14,11 +14,15 @@ export default async function SettingsPage({ searchParams }: { searchParams: { s
       mailFrequencyDays: true,
       anthropicKeyEncrypted: true,
       openaiKeyEncrypted: true,
+      economicOpenaiSessionEncrypted: true,
+      economicOpenaiExpiresAt: true,
       aiProvider: true,
     },
   });
   const hasAnthropicKey = !!user?.anthropicKeyEncrypted;
   const hasOpenaiKey = !!user?.openaiKeyEncrypted;
+  const hasEconomicSession = !!user?.economicOpenaiSessionEncrypted;
+  const economicExpired = !!user?.economicOpenaiExpiresAt && user.economicOpenaiExpiresAt.getTime() <= Date.now();
   const provider = user?.aiProvider ?? 'claude';
 
   async function saveProvider(fd: FormData) {
@@ -140,6 +144,25 @@ export default async function SettingsPage({ searchParams }: { searchParams: { s
             </div>
             <button type="submit" className="btn-primary">Appliquer</button>
           </form>
+        </section>
+
+        <section className="glass p-6 space-y-4">
+          <h2 className="text-xl font-semibold">Mode économique</h2>
+          <p className="text-sm text-muted">
+            Le mode économique s’active depuis l’onboarding avec une connexion OpenAI dédiée, sans exposer d’interface technique.
+          </p>
+          {hasEconomicSession ? (
+            <p className={`text-sm ${economicExpired ? 'text-amber-300' : 'text-green-400'}`}>
+              {economicExpired
+                ? 'Connexion expirée, relancez la connexion depuis l’onboarding.'
+                : `Connexion active jusqu’au ${user?.economicOpenaiExpiresAt?.toLocaleString('fr-BE')}.`}
+            </p>
+          ) : (
+            <p className="text-sm text-muted">Aucune connexion économique active.</p>
+          )}
+          <a href="/onboarding?mode=economic" className="btn-primary inline-flex">
+            Ouvrir l’onboarding économique
+          </a>
         </section>
 
         {/* Clé OpenAI */}

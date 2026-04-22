@@ -14,14 +14,23 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const session = await auth();
 
   let quotaExceeded = false;
+  let economicConnected = false;
   if (session?.user?.id) {
     const u = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { quotaUsedTokens: true, quotaLimitTokens: true, anthropicKeyEncrypted: true },
+      select: {
+        quotaUsedTokens: true,
+        quotaLimitTokens: true,
+        anthropicKeyEncrypted: true,
+        economicOpenaiSessionEncrypted: true,
+        economicOpenaiExpiresAt: true,
+      },
     });
     if (u && !u.anthropicKeyEncrypted) {
       quotaExceeded = Number(u.quotaUsedTokens) >= Number(u.quotaLimitTokens);
     }
+    economicConnected = !!u?.economicOpenaiSessionEncrypted
+      && (!u.economicOpenaiExpiresAt || u.economicOpenaiExpiresAt.getTime() > Date.now());
   }
 
   return (
@@ -29,7 +38,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="min-h-screen bg-bg text-text font-sans">
         {children}
         {session?.user && <RaeChat />}
-        {session?.user && <QuotaModal exceeded={quotaExceeded} />}
+        {session?.user && <QuotaModal exceeded={quotaExceeded} economicConnected={economicConnected} />}
       </body>
     </html>
   );

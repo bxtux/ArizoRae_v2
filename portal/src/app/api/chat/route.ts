@@ -35,7 +35,11 @@ export async function POST(req: NextRequest) {
     const msg = err instanceof Error ? err.message : '';
     if (msg.includes('402') || msg.includes('quota') || msg.includes('credit') || msg.includes('429')) {
       return NextResponse.json(
-        { error: 'quota', reply: 'Crédits IA insuffisants. Vérifiez votre clé API et les crédits disponibles dans vos paramètres.' },
+        {
+          error: 'quota',
+          fallback_mode: 'economic',
+          reply: "Le mode standard n'est plus disponible pour le moment. Activez le mode economique pour continuer.",
+        },
         { status: 402 }
       );
     }
