@@ -18,6 +18,8 @@ model User {
   deletedAt               DateTime? @map("deleted_at")
   anthropicKeyEncrypted   String?   @map("anthropic_key_encrypted")
   openaiKeyEncrypted      String?   @map("openai_key_encrypted")
+  economicOpenaiSessionEncrypted String?   @map("economic_openai_session_encrypted")
+  economicOpenaiExpiresAt DateTime? @map("economic_openai_expires_at")
   aiProvider              String    @default("claude") @map("ai_provider")
   quotaUsedTokens         BigInt    @default(0) @map("quota_used_tokens")
   quotaLimitTokens        BigInt    @default(500000) @map("quota_limit_tokens")

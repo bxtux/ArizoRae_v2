@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
+import type { Prisma } from '@prisma/client';
 
 export default async function StatsPage() {
   const session = await auth();
@@ -28,6 +29,9 @@ export default async function StatsPage() {
     take: 10,
     select: { workflow: true, model: true, tokensIn: true, tokensOut: true, status: true, startedAt: true },
   });
+  type RecentJob = Prisma.AiJobGetPayload<{
+    select: { workflow: true; model: true; tokensIn: true; tokensOut: true; status: true; startedAt: true };
+  }>;
 
   return (
     <main className="min-h-screen p-8">
@@ -40,7 +44,7 @@ export default async function StatsPage() {
             { label: 'Offres postulées', value: appliedOffers },
             { label: 'Candidatures', value: totalApplications },
             { label: 'Quota tokens', value: `${quotaPct}%` },
-          ].map((s) => (
+          ].map((s: { label: string; value: number | string }) => (
             <div key={s.label} className="glass p-5 text-center">
               <p className="text-3xl font-bold text-primary">{s.value}</p>
               <p className="text-sm text-muted mt-1">{s.label}</p>
@@ -76,7 +80,7 @@ export default async function StatsPage() {
               </tr>
             </thead>
             <tbody>
-              {recentJobs.map((j, i) => (
+              {recentJobs.map((j: RecentJob, i: number) => (
                 <tr key={i} className="border-b border-white/5">
                   <td className="py-2 font-mono">{j.workflow}</td>
                   <td className="py-2 text-muted">{j.model}</td>

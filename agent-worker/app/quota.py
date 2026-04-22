@@ -1,7 +1,7 @@
 from __future__ import annotations
 import base64
 import hashlib
-import os
+from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
@@ -61,6 +61,10 @@ async def pick_openai_key(user_id: UUID) -> tuple[str, Literal["admin", "user"]]
     enc = user.get("openai_key_encrypted")
     if enc:
         return decrypt_aes_gcm(enc), "user"
+    econ_enc = user.get("economic_openai_session_encrypted")
+    econ_exp = user.get("economic_openai_expires_at")
+    if econ_enc and (econ_exp is None or econ_exp > datetime.utcnow()):
+        return decrypt_aes_gcm(econ_enc), "user"
     if settings.OPENAI_API_KEY_ADMIN:
         return settings.OPENAI_API_KEY_ADMIN, "admin"
     raise HTTPException(status_code=400, detail="no OpenAI key configured")

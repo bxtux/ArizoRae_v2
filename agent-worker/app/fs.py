@@ -13,6 +13,14 @@ def user_dir(user_id: UUID) -> Path:
     return d
 
 
+def economic_run_dir(user_id: UUID, run_id: str) -> Path:
+    d = user_dir(user_id) / "economic_runs" / run_id
+    (d / "inputs").mkdir(parents=True, exist_ok=True)
+    (d / "logs").mkdir(parents=True, exist_ok=True)
+    (d / "outputs").mkdir(parents=True, exist_ok=True)
+    return d
+
+
 def skill_dir() -> Path:
     return Path(settings.SKILL_DIR)
 

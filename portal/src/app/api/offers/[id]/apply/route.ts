@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import { auth } from '@/lib/auth';
 import { agentPost } from '@/lib/agent-client';
 import { prisma } from '@/lib/db';
@@ -27,7 +28,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     agentPost<{ path: string }>('/workflows/lettre', { user_id: session.user.id, offer: offerDict }),
   ]);
 
-  const application = await prisma.$transaction(async (tx) => {
+  const application = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const app = await tx.application.create({
       data: {
         offerId: offer.id,
