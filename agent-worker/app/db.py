@@ -23,6 +23,7 @@ async def get_user(user_id: UUID) -> dict[str, Any] | None:
         res = await conn.execute(
             text(
                 "SELECT id, email, first_name, anthropic_key_encrypted, openai_key_encrypted, "
+                "economic_openai_session_encrypted, economic_openai_expires_at, "
                 "ai_provider, quota_used_tokens, quota_limit_tokens "
                 "FROM users WHERE id = :uid"
             ),

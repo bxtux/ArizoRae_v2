@@ -51,7 +51,11 @@ Termes métier, techniques et conventions utilisés dans le projet. À consulter
 
 **Quota admin** — Tokens inclus gratuitement, payés par l'admin du service, trackés dans `users.quota_used_tokens` / `quota_limit_tokens`.
 
-**Clé user** — Clé Anthropic fournie par un user pour continuer au-delà du quota gratuit. Stockée chiffrée (`anthropic_key_encrypted`) avec `AUTH_SECRET_KEY` comme clé de chiffrement.
+**Clé user** — Clé Anthropic ou OpenAI fournie par un user pour continuer au-delà du quota gratuit ou utiliser son propre compte. Stockée chiffrée (`anthropic_key_encrypted` / `openai_key_encrypted`) avec `AUTH_SECRET_KEY` comme clé de chiffrement (AES-256-GCM).
+
+**Provider IA** — Fournisseur de modèle IA choisi par l'utilisateur : `"claude"` (défaut, Anthropic) ou `"openai"`. Stocké dans `users.ai_provider`. Configurable dans `/settings`. Voir `docs/adr/0008-multi-provider-openai.md`.
+
+**ai_provider** — Champ `users.ai_provider` indiquant quel provider utiliser pour les workflows IA de ce user. Valeur `"claude"` ou `"openai"`. L'agent-worker lit ce champ dans `_base.run_simple()` pour router vers Anthropic ou OpenAI.
 
 **Magic link** — Lien signé envoyé par mail qui authentifie sans mot de passe. Utilisé pour email verification et reset password.
 
@@ -71,13 +75,22 @@ Termes métier, techniques et conventions utilisés dans le projet. À consulter
 
 **Secrets** — `.env` à la racine du repo (non versionné), `.env.example` versionné. Toutes les variables documentées dans `.env.example`.
 
-## Modèles Claude utilisés
+## Modèles utilisés
+
+### Claude (provider = "claude", défaut)
 
 - `claude-opus-4-7` — workflows complexes one-shot (`/init`, `/recherche`, `/entretien`)
 - `claude-sonnet-4-6` — génération de code et documents (`/cv`, `/lettre`, `/analyse`, scraper gen/adapt)
 - `claude-haiku-4-5` — tâches courtes (chat défaut, démo scraper, marquage postulé)
 
 Voir `docs/adr/0002-model-routing.md` pour le détail et la justification.
+
+### OpenAI (provider = "openai")
+
+- `gpt-4o` — workflows complexes et génération de documents
+- `gpt-4o-mini` — tâches courtes (chat défaut, démo scraper, marquage postulé)
+
+Voir `docs/adr/0008-multi-provider-openai.md` pour le mapping complet et les trade-offs (pas de prompt caching).
 
 ## Hors scope V2 (glossaire à éviter)
 

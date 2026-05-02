@@ -12,12 +12,13 @@ SaaS auto-hébergé d'assistance à la recherche d'emploi basé sur le skill `ra
 - Reverse proxy : **Caddy 2** (DuckDNS TLS)
 - Notif admin : **Gotify**
 - Déploiement : **Docker Compose** (`infra/docker-compose.yml`)
+- Provider IA : **Claude (défaut)** ou **OpenAI** — configurable par user dans `/settings`
 
 ## Où lire avant de coder
 
 - `docs/ROADMAP.md` : jalons M1-M7
 - `docs/GLOSSARY.md` : termes métier et techniques
-- `docs/adr/` : décisions d'architecture, ne pas les contredire sans écrire un nouvel ADR
+- `docs/adr/` : décisions d'architecture (0001–0008), ne pas les contredire sans écrire un nouvel ADR
 - `skills/rae-generic/SKILL.md` : le skill que l'agent-worker invoque, source de vérité du comportement métier
 
 Pour un module, lire **seulement** le `CLAUDE.md` de ce module (pas les autres). C'est le principe d'économie de tokens : contexte hiérarchique, chargé à la demande.

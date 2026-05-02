@@ -34,26 +34,59 @@ agent-worker/
 
 ## Règles dures
 
+### Multi-provider IA (Claude + OpenAI)
+
+L'agent-worker supporte deux providers : `"claude"` (défaut) et `"openai"`.
+Le provider actif est lu depuis `user.ai_provider` dans `_base.run_simple()`.
+Voir `docs/adr/0008-multi-provider-openai.md` pour l'architecture complète.
+
+- Provider Claude : utilise `pick_api_key()`, `build_cached_system()`, `call()` / `stream()`.
+- Provider OpenAI : utilise `pick_openai_key()`, `build_system_text()`, `call_openai()` / `stream_openai()`. **Pas de prompt caching.**
+
 ### Model routing (non négociable)
 
-Table dans `sdk_client.py`, synchrone avec `docs/adr/0002-model-routing.md` :
+Deux tables dans `sdk_client.py` — une par provider.
+
+**Claude** (`WORKFLOW_MODELS`) — synchrone avec `docs/adr/0002-model-routing.md` :
 
 ```python
 WORKFLOW_MODELS = {
     "init":           "claude-opus-4-7",
     "recherche":      "claude-opus-4-7",
     "scraper_gen":    "claude-sonnet-4-6",
+    "scraper_demo":   "claude-haiku-4-5",
     "scraper_adapt":  "claude-sonnet-4-6",
     "analyse":        "claude-sonnet-4-6",
     "cv":             "claude-sonnet-4-6",
     "lettre":         "claude-sonnet-4-6",
     "entretien":      "claude-opus-4-7",
+    "mark_applied":   "claude-haiku-4-5",
     "chat":           "claude-haiku-4-5",
     "chat_escalated": "claude-sonnet-4-6",
 }
 ```
 
-Modifier cette table → mise à jour obligatoire de `docs/adr/0002-model-routing.md`.
+**OpenAI** (`OPENAI_WORKFLOW_MODELS`) — synchrone avec `docs/adr/0008-multi-provider-openai.md` :
+
+```python
+OPENAI_WORKFLOW_MODELS = {
+    "init":           "gpt-4o",
+    "recherche":      "gpt-4o",
+    "scraper_gen":    "gpt-4o",
+    "scraper_demo":   "gpt-4o-mini",
+    "scraper_adapt":  "gpt-4o",
+    "analyse":        "gpt-4o",
+    "cv":             "gpt-4o",
+    "lettre":         "gpt-4o",
+    "entretien":      "gpt-4o",
+    "mark_applied":   "gpt-4o-mini",
+    "chat":           "gpt-4o-mini",
+    "chat_escalated": "gpt-4o",
+}
+```
+
+Modifier `WORKFLOW_MODELS` → mise à jour obligatoire de `docs/adr/0002-model-routing.md`.
+Modifier `OPENAI_WORKFLOW_MODELS` → mise à jour obligatoire de `docs/adr/0008-multi-provider-openai.md`.
 
 ### Prompt caching (non négociable)
 
@@ -74,18 +107,33 @@ Chaque appel passe par `_base.run_simple()` qui :
 
 ### Choix de la clé (quota.py)
 
+**Anthropic (provider claude) :**
+
 ```python
 async def pick_api_key(user_id) -> tuple[str, Literal["admin", "user"]]:
     user = await db.get_user(user_id)
     if user["anthropic_key_encrypted"]:
-        key = decrypt(user["anthropic_key_encrypted"])  # AES-256-GCM, voir portal/lib/crypto.ts
+        key = decrypt_aes_gcm(user["anthropic_key_encrypted"])  # AES-256-GCM
         return key, "user"
     if user["quota_used_tokens"] < user["quota_limit_tokens"]:
         return settings.ANTHROPIC_API_KEY_ADMIN, "admin"
     raise QuotaExceeded()
 ```
 
-La clé Anthropic user est chiffrée par le portal via `portal/src/lib/crypto.ts` (AES-256-GCM, `AUTH_SECRET_KEY`). L'agent-worker doit la déchiffrer avec le même algorithme.
+**OpenAI (provider openai) :**
+
+```python
+async def pick_openai_key(user_id) -> tuple[str, Literal["admin", "user"]]:
+    user = await db.get_user(user_id)
+    if user["openai_key_encrypted"]:
+        key = decrypt_aes_gcm(user["openai_key_encrypted"])  # même AES-256-GCM
+        return key, "user"
+    if settings.OPENAI_API_KEY_ADMIN:
+        return settings.OPENAI_API_KEY_ADMIN, "admin"
+    raise HTTPException(400, "no OpenAI key configured")
+```
+
+Les deux clés user sont chiffrées par le portal via `portal/src/lib/crypto.ts` (AES-256-GCM, `AUTH_SECRET_KEY`). L'agent-worker les déchiffre avec le même algorithme.
 
 ## Pattern workflow standard
 
@@ -127,6 +175,18 @@ Sinon : appel normal haiku (ou sonnet si `escalate=True` transmis par le portal)
 
 ## Tests
 
-- `pytest` sur chaque workflow avec mock `sdk_client.call`.
-- Test dédié : `test_model_routing.py` — vérifie que chaque workflow appelle le bon modèle.
-- Test dédié : `test_prompt_caching.py` — vérifie que `cache_control` est présent sur les blocs système.
+```bash
+# Depuis le conteneur
+docker compose exec agent pytest tests/ -q
+
+# En local (venv activé, depuis agent-worker/)
+pip install -e ".[dev]"
+pytest tests/ -q
+```
+
+Fichiers de test dans `agent-worker/tests/` :
+
+- `test_model_routing.py` — vérifie que `model_for(workflow, provider)` retourne le bon modèle pour chaque workflow et les deux providers (claude + openai). Couvre aussi l'exhaustivité des tables `WORKFLOW_MODELS` et `OPENAI_WORKFLOW_MODELS`.
+- `test_prompt_caching.py` — vérifie que `build_cached_system()` retourne 2 blocs avec `cache_control: {type: "ephemeral"}` (mock `skill_loader.skill_md` et `fs.user_profile_blob`). Vérifie aussi `build_system_text()` pour OpenAI (plain text, pas de cache_control).
+
+`conftest.py` initialise les variables d'environnement de test pour éviter les erreurs d'import pydantic-settings.

@@ -24,6 +24,8 @@ portal/src/
 │       ├── offers/[id]/apply/
 │       ├── offers/[id]/reject/
 │       ├── offers/[id]/interview/
+│       ├── files/cv/[id]/      # GET : sert CV Markdown depuis users_datas/<uid>/outputs/
+│       ├── files/letter/[id]/  # GET : sert lettre Markdown depuis users_datas/<uid>/outputs/
 │       ├── chat/               # POST : message → agent-worker /chat + persist DB
 │       ├── chat/history/       # GET : 50 derniers chat_messages (chargé par RaeChat)
 │       ├── support/            # POST : insert support_ticket + Gotify
@@ -77,13 +79,24 @@ await enqueueCelery('app.tasks.run_scraper_for_user', [userId]);
 await enqueueCelery('app.tasks.archive_user_data', [userId]);
 ```
 
-## Chiffrement clé Anthropic user
+## Chiffrement clés IA user
 
-`lib/crypto.ts` chiffre/déchiffre la clé Anthropic personnelle de l'utilisateur avec AES-256-GCM. La clé de chiffrement est dérivée de `AUTH_SECRET_KEY` via SHA-256. **Rotation de `AUTH_SECRET_KEY` = invalide toutes les clés Anthropic chiffrées en DB** (voir RUNBOOK).
+`lib/crypto.ts` chiffre/déchiffre les clés API personnelles de l'utilisateur avec AES-256-GCM. La clé de chiffrement est dérivée de `AUTH_SECRET_KEY` via SHA-256.
+
+Deux clés par user :
+- `anthropicKeyEncrypted` — clé Anthropic personnelle (provider claude).
+- `openaiKeyEncrypted` — clé OpenAI personnelle (provider openai).
+- `aiProvider` — enum `"claude"` (défaut) ou `"openai"` ; sélectionnable dans `/settings`.
+
+**Rotation de `AUTH_SECRET_KEY` = invalide toutes les clés Anthropic ET OpenAI chiffrées en DB** (voir RUNBOOK).
 
 ## Modal quota dépassé
 
 `components/quota-modal/QuotaModal.tsx` est un client component monté dans `app/layout.tsx`. La vérification `quotaUsedTokens >= quotaLimitTokens && !anthropicKeyEncrypted` se fait côté serveur dans le layout — pas de fetch client. Le modal renvoie vers `/settings#anthropic-key`.
+
+## Routes fichiers générés
+
+`GET /api/files/cv/[id]` et `GET /api/files/letter/[id]` servent les fichiers Markdown produits par les workflows `cv.py` / `lettre.py` depuis `users_datas/<uid>/outputs/`. Auth via `auth()`, ownership vérifié via `prisma.jobOffer.findFirst`. Retourne `Content-Type: text/markdown; charset=utf-8`.
 
 ## Styling
 

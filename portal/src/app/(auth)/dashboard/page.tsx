@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { OfferActions } from './OfferActions';
 import { RunScraperButton } from './RunScraperButton';
 import { LogoutButton } from '@/components/LogoutButton';
+import type { Prisma } from '@prisma/client';
 
 export default async function Dashboard() {
   const session = await auth();
@@ -21,6 +22,7 @@ export default async function Dashboard() {
       orderBy: { startedAt: 'desc' },
     }),
   ]);
+  type DashboardOffer = Prisma.JobOfferGetPayload<Record<string, never>>;
 
   return (
     <main className="min-h-screen p-8">
@@ -53,7 +55,7 @@ export default async function Dashboard() {
         )}
 
         <ul className="space-y-3">
-          {offers.map((offer) => (
+          {offers.map((offer: DashboardOffer) => (
             <li key={offer.id} className="glass p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">

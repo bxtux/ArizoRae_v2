@@ -13,7 +13,7 @@ Topologie Docker du stack ArizoRAE V2. Un seul `docker-compose.yml` orchestre to
 | `beat` | idem scraper (cmd: beat) | — | Celery Beat — digest mail + backup Postgres |
 | `postgres` | `postgres:16-alpine` | 5432 (interne) | DB principale |
 | `redis` | `redis:7-alpine` | 6379 (interne) | Broker Celery + result backend |
-| `terminal` | Dockerfile ttyd + claude CLI | 7681 (via caddy /terminal) | Debug power-user, auth TERMINAL_PASSWORD |
+| `terminal` | Dockerfile ttyd + claude CLI | 7681 (via caddy /terminal) | Debug power-user, auth TERMINAL_PASSWORD_HASH (bcrypt) |
 | `gotify` | `gotify/server` | 80 (via caddy /gotify) | Notifications admin (support, alertes) |
 | `ngrok` | `ngrok/ngrok` | — | Profile `ngrok` (optionnel, CGNAT) |
 
@@ -47,13 +47,14 @@ Voir `.env.example` pour la liste exhaustive.
 | Cache/broker | `REDIS_URL`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND` |
 | SMTP | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `SMTP_FROM_NAME` |
 | Anthropic | `ANTHROPIC_API_KEY_ADMIN` — quota gratuit users (clé admin) |
+| OpenAI | `OPENAI_API_KEY_ADMIN` — optionnel, clé admin OpenAI si provider openai utilisé sans clé user |
 | Agent | `AGENT_WORKER_URL=http://agent:8000`, `AGENT_WORKER_SECRET` |
 | Gotify | `GOTIFY_URL`, `GOTIFY_ADMIN_TOKEN` |
-| Terminal | `TERMINAL_PASSWORD` |
+| Terminal | `TERMINAL_PASSWORD_HASH` — bcrypt hash du mot de passe terminal (généré via `htpasswd -nbB user pass \| cut -d: -f2`) |
 | Ngrok | `NGROK_AUTHTOKEN` |
 | Divers | `TZ=Europe/Brussels`, `PUBLIC_URL` |
 
-> **Attention rotation `AUTH_SECRET_KEY`** : invalide toutes les sessions actives ET toutes les clés Anthropic chiffrées des utilisateurs. Voir `docs/RUNBOOK.md` section 3.
+> **Attention rotation `AUTH_SECRET_KEY`** : invalide toutes les sessions actives ET toutes les clés Anthropic **et OpenAI** chiffrées des utilisateurs. Voir `docs/RUNBOOK.md` section 3.
 
 ## Commandes courantes
 

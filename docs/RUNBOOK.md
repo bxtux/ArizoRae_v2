@@ -63,16 +63,16 @@ docker compose exec portal curl -s http://agent:8000/health
 
 ## 3. Rotation des secrets
 
-### AUTH_SECRET_KEY (signe les cookies + chiffre les clés Anthropic user)
+### AUTH_SECRET_KEY (signe les cookies + chiffre les clés Anthropic et OpenAI user)
 
-**Attention** : changer cette clé invalide toutes les sessions actives ET rend illisibles les clés Anthropic utilisateurs chiffrées (champ `anthropic_key_encrypted`).
+**Attention** : changer cette clé invalide toutes les sessions actives ET rend illisibles les clés Anthropic **et OpenAI** utilisateurs chiffrées (champs `anthropic_key_encrypted` et `openai_key_encrypted`).
 
 Procédure :
 1. Générer une nouvelle clé : `openssl rand -base64 48`
 2. Mettre à jour `.env` : `AUTH_SECRET_KEY=<nouvelle_clé>`
-3. Vider le champ `anthropic_key_encrypted` pour tous les utilisateurs (ils devront resaisir leur clé) :
+3. Vider les champs de clés chiffrées pour tous les utilisateurs (ils devront resaisir leurs clés) :
    ```sql
-   UPDATE users SET anthropic_key_encrypted = NULL;
+   UPDATE users SET anthropic_key_encrypted = NULL, openai_key_encrypted = NULL;
    ```
 4. `docker compose up -d portal` pour recharger.
 
@@ -86,6 +86,12 @@ Procédure :
 
 1. Révoquer l'ancienne clé sur `console.anthropic.com`.
 2. Mettre à jour `.env` : `ANTHROPIC_API_KEY_ADMIN=<nouvelle_clé>`
+3. `docker compose up -d agent`
+
+### OPENAI_API_KEY_ADMIN
+
+1. Révoquer l'ancienne clé sur `platform.openai.com`.
+2. Mettre à jour `.env` : `OPENAI_API_KEY_ADMIN=<nouvelle_clé>`
 3. `docker compose up -d agent`
 
 ---

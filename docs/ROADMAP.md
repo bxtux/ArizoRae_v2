@@ -214,14 +214,21 @@ Cette section documente les écarts entre la spec et l'implémentation réelle. 
 | Prisma migrate + dossier `migrations/` | `prisma db push` (sans migrations) | DB fraîche, migrations générées à la demande si besoin |
 | `portal/src/components/stepper/` | Absent | Non réutilisé |
 
-### Features non implémentées — backlog post-V2
+### Extensions post-V2 (non planifiées, ajoutées dans le code)
+
+| Élément | Ce qui a été ajouté | ADR |
+|---|---|---|
+| **Provider OpenAI** en alternatif à Claude | `users.ai_provider`, `openai_key_encrypted`, `OPENAI_WORKFLOW_MODELS`, UI radio dans settings | `docs/adr/0008-multi-provider-openai.md` |
+| **Routes fichiers** `/api/files/cv/[id]` et `/api/files/letter/[id]` | Servent les `.md` depuis `users_datas/<uid>/outputs/` avec auth + ownership check | — |
+
+### Features backlog post-V2
 
 | Feature | Priorité | Effort estimé | Notes |
 |---|---|---|---|
-| **Génération PDF** (CV, lettre, fiche entretien) | Moyenne | 1-2 j | Ajouter `weasyprint` ou `md-to-pdf` à `agent-worker`. Actuellement : Markdown dans `outputs/`. |
+| **Tests e2e complets** (scraper → candidature) | Haute | 2-3 j | Playwright couvre actuellement auth + signup. Manque : onboarding → scraper → postuler → CV/lettre. |
+| **Génération PDF** (CV, lettre, fiche entretien) | Moyenne | 1-2 j | Ajouter `weasyprint` ou `md-to-pdf` à `agent-worker`. Actuellement : Markdown dans `outputs/`. Routes `/api/files/` servent les `.md` — à adapter pour PDF si implémenté. |
 | **`scraper_config.json`** (filtres user par offre) | Basse | 0.5 j | Préférences nb offres, mots-clés éliminatoires. Actuellement géré via `adapt_scraper` conversation. |
 | **Redis cache FACTS/BULLET** (5min, hash mtime) | Basse | 0.5 j | Optimisation perf : éviter relecture fichiers à chaque appel. Impact faible car `cache_control: ephemeral` côté Anthropic couvre déjà 90% tokens. |
-| **Tests e2e complets** (scraper → candidature) | Haute | 2-3 j | Playwright couvre actuellement auth + signup. Manque : onboarding → scraper → postuler → CV/lettre. |
 | **Migrations Prisma** (dossier `migrations/`) | Basse | 0.5 j | Générer via `prisma migrate dev --name init` sur DB fraîche, committer. |
 
 ---
@@ -230,7 +237,7 @@ Cette section documente les écarts entre la spec et l'implémentation réelle. 
 
 Tous les milestones M1–M7 sont complets. Les features du backlog post-V2 sont des améliorations optionnelles.
 
-> **Dernière mise à jour** : 2026-04-21 — M7 clos après validation e2e 7/7 sur stack running. Déviations auditées contre `Claude_PLAN-INIT.MD`.
+> **Dernière mise à jour** : 2026-05-02 — Audit code/docs post-M7 : OpenAI provider documenté (ADR 0008), routes files ajoutées, tests agent-worker créés, docs alignées sur code réel.
 
 ---
 
