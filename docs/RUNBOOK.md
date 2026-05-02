@@ -4,6 +4,7 @@ Procédures opérationnelles pour administrer, dépanner et restaurer le service
 
 ## Table des matières
 
+0. [Premier démarrage](#0-premier-démarrage)
 1. [Démarrage et arrêt](#1-démarrage-et-arrêt)
 2. [Vérification de la santé](#2-vérification-de-la-santé)
 3. [Rotation des secrets](#3-rotation-des-secrets)
@@ -12,6 +13,44 @@ Procédures opérationnelles pour administrer, dépanner et restaurer le service
 6. [Mise à jour du stack](#6-mise-à-jour-du-stack)
 7. [Incidents fréquents](#7-incidents-fréquents)
 8. [Escalade Gotify](#8-escalade-gotify)
+
+---
+
+## 0. Premier démarrage
+
+Après un `docker compose up -d` initial, la DB est **vide** — aucun compte n'existe.
+
+### Créer le premier compte (flow normal)
+
+1. Ouvrir `https://<DOMAIN>/signup`
+2. Remplir le formulaire (email + mot de passe ≥ 8 caractères)
+3. Un email de vérification est envoyé via SMTP — cliquer sur le lien
+4. Se connecter sur `https://<DOMAIN>/login`
+
+> Le login est bloqué tant que `email_verified_at` est NULL. Si l'email ne reçoit pas le lien, vérifier les spams ou consulter les logs : `docker compose logs portal | grep -i mail`
+
+### Vérifier que le SMTP est opérationnel avant l'inscription
+
+```bash
+docker compose exec portal node -e "
+const nodemailer = require('nodemailer');
+const t = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+});
+t.verify().then(() => console.log('SMTP OK')).catch(e => console.error('SMTP ERROR:', e.message));
+"
+```
+
+### Bypass email verification (urgence / dev)
+
+Si le SMTP n'est pas encore configuré, vérifier manuellement en DB après l'inscription :
+
+```bash
+docker compose exec postgres psql -U $POSTGRES_USER $POSTGRES_DB \
+  -c "UPDATE users SET email_verified_at = NOW() WHERE email = 'ton@email.com';"
+```
 
 ---
 
@@ -201,6 +240,24 @@ docker compose up -d postgres redis gotify
 ---
 
 ## 7. Incidents fréquents
+
+### Impossible de se connecter (page login, aucune erreur ou "identifiants invalides")
+
+Causes possibles dans l'ordre :
+
+1. **DB vide** — aucun compte créé. Vérifier : `docker compose exec postgres psql -U $POSTGRES_USER $POSTGRES_DB -c "SELECT count(*) FROM users;"`
+   → Si `0`, suivre la section [0. Premier démarrage](#0-premier-démarrage).
+
+2. **Email non vérifié** — `email_verified_at` est NULL. NextAuth retourne `null` sans message d'erreur explicite.
+   ```bash
+   docker compose exec postgres psql -U $POSTGRES_USER $POSTGRES_DB \
+     -c "SELECT email, email_verified_at FROM users WHERE email = 'ton@email.com';"
+   ```
+   Si NULL, cliquer sur le lien reçu par mail ou appliquer le bypass dev ci-dessus.
+
+3. **Mot de passe incorrect** — bcrypt compare échoue silencieusement. Réinitialiser via `/reset` ou forcer un nouveau hash en DB.
+
+4. **Compte supprimé** — `deleted_at` non NULL → compte soft-deleted. Le rétablir si nécessaire (voir section [5](#5-archives-utilisateurs)).
 
 ### Portal ne répond pas (502)
 
